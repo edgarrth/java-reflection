@@ -297,9 +297,3 @@ El pago se rechaza porque `FraudPolicy` limita esta PoC a 10,000.00. La regla ex
 - El registro usa estructuras concurrentes.
 - Los plugins son intercambiables por contrato y el caso de uso no conoce implementaciones concretas.
 - El proyecto evita dependencias de infraestructura que no aportan al concepto.
-
-## 13. Límites intencionales
-
-Esta PoC no pretende demostrar hot deployment de JARs externos, module layers, instrumentation/agents, bytecode generation ni acceso reflectivo profundo a módulos del JDK. Esos son temas relacionados pero distintos y meterlos aquí mezclaría varios casos técnicos.
-
-Tampoco usaría Reflection para todo en un sistema real. La usaría donde existe una necesidad de extensibilidad o metadata dinámica y cachearía los resultados, como hago en esta PoC.
