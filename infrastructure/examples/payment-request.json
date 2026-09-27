@@ -1,5 +1,6 @@
 {
   "paymentId": "PAY-1001",
+  "providerCode": "ALPHA",
   "amount": 125.50,
   "currency": "PEN",
   "instrumentType": "CARD",

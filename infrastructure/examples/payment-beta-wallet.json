@@ -1,0 +1,9 @@
+{
+  "paymentId": "PAY-2004",
+  "providerCode": "BETA",
+  "amount": 80,
+  "currency": "PEN",
+  "instrumentType": "WALLET",
+  "walletProvider": "YAPE-DEMO",
+  "walletToken": "demo-token"
+}

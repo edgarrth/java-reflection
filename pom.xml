@@ -12,6 +12,7 @@
   <groupId>pe.axiz</groupId>
   <artifactId>reflection-payment-poc</artifactId>
   <version>1.0.0</version>
+  <packaging>pom</packaging>
   <name>reflection-payment-poc</name>
   <description>PoC avanzada de Java Reflection aplicada a procesamiento de pagos</description>
 
@@ -20,32 +21,16 @@
     <maven.compiler.release>25</maven.compiler.release>
   </properties>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webmvc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <modules>
+    <module>payment-plugin-api</module>
+    <module>payment-service</module>
+    <module>provider-alpha</module>
+    <module>provider-beta</module>
+    <module>explicit-example</module>
+  </modules>
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

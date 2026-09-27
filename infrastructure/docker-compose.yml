@@ -4,7 +4,9 @@ services:
       context: ..
       dockerfile: infrastructure/Dockerfile
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      PLUGIN_ADMIN_TOKEN: ${PLUGIN_ADMIN_TOKEN:?Configure PLUGIN_ADMIN_TOKEN antes de iniciar}
+    volumes:
+      - ../runtime:/app/runtime:ro
     stop_grace_period: 20s

@@ -1,0 +1,18 @@
+server:
+  port: 8080
+  shutdown: graceful
+spring:
+  application:
+    name: reflection-payment-poc
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+poc:
+  plugin-directory: ${PLUGIN_DIRECTORY:./runtime/plugins}
+  plugin-catalog: ${PLUGIN_CATALOG:./runtime/payment-plugins.json}
+  admin-token: ${PLUGIN_ADMIN_TOKEN:}

@@ -1,7 +1,14 @@
 {
-  "plugins": [
-    "pe.axiz.reflectionpoc.infrastructure.plugin.CardPaymentProcessor",
-    "pe.axiz.reflectionpoc.infrastructure.plugin.WalletPaymentProcessor",
-    "pe.axiz.reflectionpoc.infrastructure.plugin.BankTransferPaymentProcessor"
+  "providers": [
+    {
+      "code": "ALPHA",
+      "artifact": "provider-alpha/target/provider-alpha-1.0.0.jar",
+      "className": "com.example.alpha.AlphaPaymentProcessor"
+    },
+    {
+      "code": "BETA",
+      "artifact": "provider-beta/target/provider-beta-1.0.0.jar",
+      "className": "com.example.beta.BetaPaymentProcessor"
+    }
   ]
 }

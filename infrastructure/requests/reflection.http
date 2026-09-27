@@ -1,15 +1,26 @@
-### 1. Lista plugins detectados por reflexión
-GET http://localhost:8080/api/v1/reflection/plugins
+@baseUrl = http://localhost:8080
+# Define PLUGIN_ADMIN_TOKEN in the environment inherited by the HTTP client.
+@adminToken = {{$processEnv PLUGIN_ADMIN_TOKEN}}
 
-### 2. Inspecciona metadatos del plugin CARD
-GET http://localhost:8080/api/v1/reflection/plugins/CARD/inspect
+### 1. Listar proveedores externos (inicialmente ALPHA)
+GET {{baseUrl}}/api/v1/reflection/plugins
+Authorization: Bearer {{adminToken}}
 
-### 3. Procesa un pago con invocación reflectiva
-POST http://localhost:8080/api/v1/payments
+### 2. Descriptor con capacidades, versión y hash del artefacto
+GET {{baseUrl}}/api/v1/reflection/plugins/ALPHA
+Authorization: Bearer {{adminToken}}
+
+### 3. Inspeccionar clase; repetir para observar cache hit
+GET {{baseUrl}}/api/v1/reflection/plugins/ALPHA/inspect
+Authorization: Bearer {{adminToken}}
+
+### 4. Procesar tarjeta con ALPHA
+POST {{baseUrl}}/api/v1/payments
 Content-Type: application/json
 
 {
   "paymentId": "PAY-1001",
+  "providerCode": "ALPHA",
   "amount": 125.50,
   "currency": "PEN",
   "instrumentType": "CARD",
@@ -20,8 +31,58 @@ Content-Type: application/json
   "cvv": "123"
 }
 
-### 4. Consulta métricas de Reflection
-GET http://localhost:8080/api/v1/reflection/metrics
+### 5. Después de instalar BETA con scripts/install_plugins.py
+POST {{baseUrl}}/api/v1/reflection/plugins/reload
+Authorization: Bearer {{adminToken}}
 
-### 5. Recarga el catálogo y reconstruye el registro
-POST http://localhost:8080/api/v1/reflection/plugins/reload
+### 6. BETA funciona sin reconstruir ni reiniciar el servicio
+POST {{baseUrl}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "paymentId": "PAY-1002",
+  "providerCode": "BETA",
+  "amount": 80,
+  "currency": "PEN",
+  "instrumentType": "CARD",
+  "pan": "4111111111111111",
+  "cardHolder": "Cliente Demo",
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "cvv": "123"
+}
+
+### 7. Billetera con ALPHA (BETA devuelve 400 para este instrumento)
+POST {{baseUrl}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "paymentId": "PAY-1003",
+  "providerCode": "ALPHA",
+  "amount": 80,
+  "currency": "PEN",
+  "instrumentType": "WALLET",
+  "walletProvider": "YAPE-DEMO",
+  "walletToken": "demo-token"
+}
+
+### 8. Transferencia con ALPHA
+POST {{baseUrl}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "paymentId": "PAY-1004",
+  "providerCode": "ALPHA",
+  "amount": 80,
+  "currency": "USD",
+  "instrumentType": "BANK_TRANSFER",
+  "bank": "DEMO",
+  "accountNumber": "demo-account"
+}
+
+### 9. Métricas acumuladas por proveedor
+GET {{baseUrl}}/api/v1/reflection/metrics
+Authorization: Bearer {{adminToken}}
+
+### 10. Health público de la PoC
+GET {{baseUrl}}/actuator/health
