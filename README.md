@@ -1,28 +1,21 @@
-# PoC: proveedores de pagos externos con Java Reflection
+# Java Reflection: Proveedores de pagos externos
 
-**Ruta de lectura:** empieza por [qué es cada módulo](#3-módulos-y-dependencias), continúa con
-[el recorrido de reflection y de un pago](#4-reflection-paso-a-paso), prepara
-[la ejecución local](#6-ejecución-local) y sigue [los 24 casos con curl](#8-laboratorio-con-curl-casos-respuestas-y-explicación).
-Para comprobar directamente la incorporación de un proveedor nuevo, usa
-[la demostración automatizada](#7-demostración-decisiva-beta-después-del-arranque).
 
-## 1. El problema que resuelve
+## Caso de uso
 
-Un servicio de pagos ya está desplegado. Otro equipo entrega un proveedor nuevo como JAR.
-El servicio debe descubrirlo, validar su contrato y capacidades, y procesar pagos con él
-**sin modificar, recompilar ni reiniciar el servicio principal**.
+Se tiene un servicio de pagos al cual se le puede agregar un proveedor nuevo como JAR.
+El servicio puede descubrirlo, validar su contrato y capacidades, y procesar pagos con él
+sin modificar, recompilar ni reiniciar el servicio principal.
 
-Esta PoC demuestra ese escenario con ALPHA y BETA. Los proveedores están fuera del JAR de Spring Boot;
+Los proveedores están fuera del JAR de Spring Boot;
 el servicio no tiene dependencias Maven de ninguno de ellos. Agregar BETA al reactor raíz facilita
 trabajar con el ejemplo, pero no lo convierte en dependencia del servicio.
 
-El objetivo funcional sigue siendo simular pagos. El objetivo técnico es una extensión real mediante
-carga de clases, metadatos y proxies. No hay integración bancaria, cobros reales, base de datos ni mensajería.
 
 Stack: Java 25, Spring Boot 4.1.1, Maven 3.9.16 recomendado. Los scripts de instalación y demostración
 requieren Python 3.10+ y usan únicamente su biblioteca estándar. No se necesita Python para ejecutar el servicio.
 
-## 2. Cuándo reflection aporta una ventaja
+## Cuándo reflection aporta una ventaja
 
 | Registro explícito | Registro de JAR externos |
 |---|---|
@@ -31,22 +24,16 @@ requieren Python 3.10+ y usan únicamente su biblioteca estándar. No se necesit
 | Hay que recompilar y distribuir el host. | El mismo proceso publica una nueva generación del registro. |
 | Más comprobaciones en compilación y menor complejidad. | Requiere validaciones en ejecución y gestionar classloaders. |
 
-La ventaja demostrada es **extensibilidad de implementaciones desconocidas al compilar el host**.
-No se afirma que reflection sea más rápida ni que resulte preferible para tres clases fijas.
-
-El módulo [explicit-example](explicit-example/src/main/java/pe/axiz/explicit/ExplicitPaymentGateway.java)
-contiene una alternativa funcional con `new AlphaPaymentProcessor()` y un mapa.
-Su prueba procesa ALPHA y demuestra que BETA no se descubre automáticamente. Es una comparación del
-registro y despacho, no una segunda implementación de toda la API REST.
+El obetivo de la poc es mostrar la **extensibilidad de implementaciones desconocidas al compilar el host**.
 
 Java también ofrece `ServiceLoader` para descubrir proveedores de una SPI. Es una alternativa válida:
 esta PoC usa un catálogo explícito para controlar el artefacto, su hash y la clase de entrada, y reflection
 para inspeccionar genéricos, anotaciones y constructores. Estos plugins, anotaciones y endpoints son un
 diseño de esta aplicación; no son un estándar impuesto por reflection.
 
-## 3. Módulos y dependencias
+Módulos y dependencias
 
-### 3.1. Qué significan ALPHA, BETA, service y api
+Modulos ALPHA, BETA, service y api
 
 ALPHA y BETA son **dos proveedores ficticios de procesamiento de pagos**, como si fueran dos empresas
 con implementaciones diferentes. No son versiones alpha/beta del software ni entornos de despliegue.
@@ -66,14 +53,14 @@ del mismo proceso Java, sin puertos propios ni llamadas HTTP entre ellos y el se
 API significa aquí contrato compartido de Java; no otro servidor REST. SPI es el contrato que implementa
 un proveedor para integrarse: en este proyecto, `PaymentProcessor<T>`.
 
-### 3.2. Qué se compila y qué se ejecuta
+### Compilacion y ejecucion
 
 ```text
 Al compilar:
-  payment-service ──────> payment-plugin-api
-  provider-alpha ───────> payment-plugin-api
-  provider-beta ────────> payment-plugin-api
-  explicit-example ────> provider-alpha + payment-plugin-api
+  payment-service -> payment-plugin-api
+  provider-alpha -> payment-plugin-api
+  provider-beta -> payment-plugin-api
+  explicit-example -> provider-alpha + payment-plugin-api
 
 Al ejecutar, dentro de una sola JVM:
   payment-service.jar
@@ -83,14 +70,14 @@ Al ejecutar, dentro de una sola JVM:
     └── loader externo → beta-<hash>.jar (después de instalarlo)
 ```
 
-El `pom.xml` raíz agrupa los módulos para construirlos juntos por comodidad. Eso no agrega ALPHA ni BETA
+El `pom.xml` raíz agrupa los módulos para construirlos juntos. Eso no agrega ALPHA ni BETA
 como dependencias de `payment-service`. Si estuvieran empaquetados dentro del servidor, incorporar otro
 proveedor normalmente exigiría reconstruir ese servidor: se perdería la ventaja que queremos demostrar.
 
 `mvn -pl provider-beta -am package` selecciona BETA y los módulos que necesita (`payment-plugin-api` y el
 POM padre). No selecciona `payment-service`. En un sistema real, BETA podría venir de otro repositorio/equipo.
 
-### 3.3. Organización del repositorio
+### Organización del repositorio
 
 ```text
 payment-plugin-api/   Contratos, instrumentos, resultados y anotaciones; sin Spring
@@ -128,9 +115,9 @@ de `payment-plugin-api`, con scope Maven `provided`: el host proporciona esa API
 Ambos proveedores aceptan CARD; agregar otro proveedor para los instrumentos existentes no cambia el mapper.
 Agregar un instrumento nuevo sí requiere ampliar el contrato sealed y el mapper: esa extensión no es el objetivo.
 
-## 4. Reflection paso a paso
+## Flujo de Reflection
 
-### 4.1. Primero distinguir instalación, registro y ejecución
+### Instalación, registro y ejecución
 
 Son tres momentos distintos. Copiar un JAR no basta para empezar a usarlo:
 
@@ -163,7 +150,7 @@ este fragmento es ilustrativo y no se debe copiar como catálogo):
 El código `BETA` no se obtiene del nombre del archivo: se lee de `@PaymentPlugin(code = "BETA", ...)`.
 El request de pago envía ese código, nunca el nombre Java de la clase.
 
-### 4.2. Qué hace el registro al cargar un JAR
+### Qué hace el registro al cargar un JAR
 
 1. El registro lee `runtime/payment-plugins.json` al arrancar o durante una recarga administrativa.
 2. Valida el nombre del JAR y que su ruta real esté dentro del directorio de plugins.
@@ -181,19 +168,15 @@ El request de pago envía ese código, nunca el nombre Java de la clase.
     delega usando `Method.invoke` y extrae la causa de `InvocationTargetException`.
 11. Publica un mapa inmutable completo cuando todos los plugins son válidos.
 
-Después del descubrimiento, el registro despacha a través de una llamada normal a `PaymentProcessor`.
+Después del descubrimiento, el registro redirecciona a través de una llamada normal a `PaymentProcessor`.
 No vuelve a buscar constructores ni métodos en cada pago. La invocación reflectiva del proxy sirve para
 delegar una operación interceptada; la ventaja de extensibilidad está en el descubrimiento y la carga.
 
 La prioridad ordena el listado; no selecciona proveedores ni implementa failover.
 `@ReflectiveOperation` documenta métodos en el descriptor; no genera rutas HTTP ni autoriza métodos arbitrarios.
 
-Código principal:
-[registro](payment-service/src/main/java/pe/axiz/reflectionpoc/infrastructure/reflection/ReflectionPluginRegistry.java),
-[proxy](payment-service/src/main/java/pe/axiz/reflectionpoc/infrastructure/reflection/ObservedPaymentProxy.java),
-[inspector](payment-service/src/main/java/pe/axiz/reflectionpoc/infrastructure/reflection/ReflectionInspector.java).
 
-### 4.3. Un pago BETA, desde el JSON hasta la respuesta
+### Flujo de pago BETA
 
 Supongamos que BETA ya está registrado y llega un request con `providerCode: "BETA"`, `instrumentType: "CARD"`
 y un importe de 125.50 PEN:
@@ -228,20 +211,7 @@ JSON → controller → mapper → caso de uso → fraude
 No se vuelve a leer el catálogo ni se crea un proveedor en cada pago. La instancia se reutiliza hasta
 la siguiente recarga. `providerCode` decide quién procesa; `instrumentType` decide qué instrumento recibe.
 
-### 4.4. Qué es Java Reflection y qué es diseño de la PoC
-
-| Mecanismo | Responsabilidad |
-|---|---|
-| `URLClassLoader` | Permite encontrar clases en el JAR externo. Es carga de clases. |
-| `Class.forName`, `getAnnotation`, `getGenericInterfaces` | Obtienen e inspeccionan la clase durante la ejecución. |
-| `getConstructor` y `newInstance` | Encuentran y ejecutan el constructor público sin referenciar la clase concreta en código. |
-| `Proxy.newProxyInstance` y `Method.invoke` | Interceptan y delegan llamadas al proveedor. |
-| Catálogo, `@PaymentPlugin`, códigos, endpoints y política de recarga | Son convenciones implementadas por esta PoC. Java no las genera automáticamente. |
-
-Hay dos contratos diferentes: `PaymentGateway` es lo que necesita el caso de uso; `PaymentProcessor<T>`
-es lo que implementa cada proveedor. Esto permite cambiar el mecanismo de registro sin cambiar el caso de uso.
-
-## 5. Contrato de un proveedor externo
+## Contrato de un proveedor externo
 
 ```java
 @PaymentPlugin(
@@ -280,7 +250,7 @@ Requisitos de SPI v1:
 `apiVersion` permite rechazar versiones declaradas incompatibles; no sustituye una estrategia completa
 de compatibilidad binaria. Los errores de linkage también se controlan.
 
-## 6. Ejecución local
+## Ejecución local
 
 Desde la raíz, con `JAVA_HOME` y `PATH` apuntando a JDK 25:
 
@@ -289,24 +259,12 @@ mvn clean verify
 python scripts/install_plugins.py --providers ALPHA
 ```
 
-En Linux/macOS usa `python3` si corresponde.
-
-PowerShell:
-
-```powershell
-$env:PLUGIN_ADMIN_TOKEN = "demo-local-cambiar"
-java -jar payment-service/target/payment-service-1.0.0.jar
-```
-
-Bash:
+En Linux/macOS 
 
 ```bash
 export PLUGIN_ADMIN_TOKEN='demo-local-cambiar'
 java -jar payment-service/target/payment-service-1.0.0.jar
 ```
-
-El servicio falla al arrancar si falta el catálogo o es inválido. Ejecuta primero el instalador.
-Las rutas predeterminadas se resuelven desde el directorio de trabajo; estos comandos asumen la raíz.
 
 | Variable | Valor predeterminado | Uso |
 |---|---|---|
@@ -317,7 +275,7 @@ Las rutas predeterminadas se resuelven desde el directorio de trabajo; estos com
 Sin token configurado, los endpoints administrativos devuelven 503. Con token incorrecto o ausente,
 devuelven 401. Usa `Authorization: Bearer <token>`. La API de pagos permanece abierta para la demo local.
 
-## 7. Demostración decisiva: BETA después del arranque
+## Flujo de pago BETA
 
 ### Automática
 
@@ -337,11 +295,6 @@ El script:
 8. Verifica que el hash del servicio no cambió y que sigue siendo el mismo proceso.
 9. Guarda `verification.json` y `service.log` en `runtime/verification-*/` y detiene su proceso.
 
-Opciones: `--maven /ruta/mvn`, `--java /ruta/java`, `--maven-repo /ruta/repositorio`.
-En Windows se puede indicar la ruta de `mvn.cmd`. El script empaqueta omitiendo ejecución de pruebas
-para concentrarse en la demostración; la suite se ejecuta con `mvn clean verify`.
-
-### Manual, sin reconstruir el servicio
 
 Si quieres construir BETA realmente después del arranque, comienza con:
 
@@ -359,19 +312,14 @@ curl -X POST http://localhost:8080/api/v1/reflection/plugins/reload \
   -H "Authorization: Bearer demo-local-cambiar"
 ```
 
-En PowerShell usa `curl.exe` y el comando en una línea, o el archivo HTTP del proyecto.
-Ahora cambia `providerCode` a `BETA` en el request. No reinicies el servicio.
-
 El instalador conserva JARs con nombres basados en su hash y reemplaza el catálogo de forma atómica.
 Solo instala proveedores ya compilados: no descarga ni ejecuta código remoto.
 El SHA-256 generado identifica los bytes instalados; **no certifica quién los publicó**.
 
-## 8. Laboratorio con curl: casos, respuestas y explicación
+## Pruebas
 
-### 8.0. Preparación y cómo leer los ejemplos
+### Preparación
 
-Ejecuta las pruebas en orden, desde la raíz del repositorio, con una instancia recién iniciada y solo ALPHA.
-Si ya instalaste BETA, detén **tu instancia de la demo** y repite la preparación de la sección 6:
 
 ```bash
 python scripts/install_plugins.py --providers ALPHA
@@ -381,11 +329,6 @@ Arranca el servicio con `PLUGIN_ADMIN_TOKEN=demo-local-cambiar` según tu shell 
 Deja esa terminal abierta para observar logs; ejecuta los curls en otra terminal.
 Los comandos asumen el puerto 8080 y el catálogo predeterminado `runtime/payment-plugins.json`.
 Si usas rutas o token distintos, ajústalos también en los ejemplos.
-
-**En Windows PowerShell cambia `curl` por `curl.exe`** para evitar el alias de PowerShell.
-Todos los curls están en una sola línea y envían JSON desde archivos mediante
-`--data-binary "@ruta/archivo.json"`: no necesitas escapar JSON ni usar continuaciones de Bash.
-En Linux/macOS usa `python3` en lugar de `python` si corresponde.
 
 - `-sS` oculta la barra de progreso y muestra errores de conexión.
 - `-i` incluye la línea HTTP y los headers: permite distinguir 200, 400, 404 y 409.
@@ -1039,36 +982,7 @@ para que no retenga clases de cargadores retirados. Sus contadores son acumulati
 El cierre del contexto Spring también cierra cargadores y elimina sus copias temporales.
 Una caída forzada del proceso puede dejar archivos temporales del sistema.
 
-## 11. Pruebas
-
-```bash
-mvn clean verify
-```
-
-La suite cubre:
-
-- Compilar un JAR externo durante el test y verificar que su clase no existe en el classpath del host.
-- Agregar un segundo JAR mediante recarga.
-- Rechazar anotaciones ausentes, versión incorrecta, clase abstracta, contrato incompatible,
-  constructor no público, genéricos raw, capacidades incompatibles y códigos duplicados.
-- Rechazar hashes incorrectos y rutas fuera del formato autorizado.
-- Conservar registro/caché tras fallo y esperar pagos en vuelo antes de cambiar la generación.
-- Mantener la causa original de una excepción sin envoltorios reflectivos adicionales.
-- Separar aprobación, rechazo y fallo técnico en métricas, y comprobar logs sin credenciales.
-- Mantener fraude en el caso de uso, validar REST y distinguir 400/404/502.
-- Exigir credenciales administrativas y comprobar el caso deshabilitado.
-- Ejecutar el registro explícito como comparación.
-
-La demostración automatizada agrega evidencia con un servidor HTTP real y el JAR ejecutable.
-No usa mocks para simular la instalación de BETA.
-
-El instalador tiene pruebas adicionales de integridad y conservación del catálogo ante errores:
-
-```bash
-python -m unittest discover -s scripts -p "test_*.py"
-```
-
-## 12. Docker
+## Docker
 
 Para preparar el volumen externo desde la raíz:
 
@@ -1079,34 +993,5 @@ export PLUGIN_ADMIN_TOKEN='demo-local-cambiar'
 docker compose -f infrastructure/docker-compose.yml up --build
 ```
 
-En PowerShell configura la variable con `$env:PLUGIN_ADMIN_TOKEN = "demo-local-cambiar"`.
-Compose monta `runtime/` de solo lectura dentro del contenedor y publica el puerto únicamente en localhost.
-El proceso Java corre como usuario no root. Para instalar BETA, actualiza ese directorio desde el host
-con el instalador y llama a reload; no reconstruyas la imagen.
-
 El Dockerfile también incluye un catálogo inicial con ALPHA para ejecutar la imagen sin el volumen de Compose.
 No hay servicios externos adicionales.
-
-## 13. Límites deliberados
-
-- Se cargan **JARs confiables** instalados por un operador. Un classloader no es un sandbox: ese código
-  tiene los permisos del proceso. El hash detecta cambios, no sustituye firmas ni revisión de artefactos.
-- El token administrativo es una protección mínima para la demo local, no un sistema de identidad completo.
-  Un despliegue real requiere TLS y controles de acceso apropiados.
-- La recarga espera a las ejecuciones activas; un proveedor bloqueado puede retrasarla. La PoC no incorpora
-  cancelación, timeouts de proveedores, circuit breakers ni aislamiento por proceso.
-- No hay persistencia, idempotencia, reintentos de cobros, conciliación ni integración con gateways reales.
-- Los proveedores pueden cambiar comportamiento, pero la SPI y los tipos de instrumentos se comparten.
-  Cambiar ese contrato puede requerir desplegar una nueva versión del host.
-- No se pretende que reflection sea superior a inyección explícita en todos los sistemas.
-
-## 14. Las seis mejoras incorporadas
-
-| Mejora | Implementación |
-|---|---|
-| Proxy con responsabilidad observable | Logs seguros, duración y resultados por proveedor |
-| Propagación correcta de excepciones | Desempaquetado de InvocationTargetException en el handler; error HTTP sanitizado |
-| Recarga atómica | Snapshot inmutable, validación previa y cierre después de drenar lectores |
-| Separación descubrimiento/ejecución | Puerto PaymentGateway y despacho por SPI |
-| Pruebas de límites | JARs reales, fallos de contrato, concurrencia, REST y privacidad de logs |
-| Comparación sin reflection | Módulo explicit-example y demostración del mismo JAR del host |
