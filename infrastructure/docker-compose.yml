@@ -1,0 +1,10 @@
+services:
+  reflection-payment-poc:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    stop_grace_period: 20s

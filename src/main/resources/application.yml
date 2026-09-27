@@ -1,0 +1,16 @@
+server:
+  port: 8080
+  shutdown: graceful
+spring:
+  application:
+    name: reflection-payment-poc
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+poc:
+  plugin-catalog: classpath:datasets/payment-plugins.json

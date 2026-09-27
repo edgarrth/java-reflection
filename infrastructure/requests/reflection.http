@@ -1,0 +1,27 @@
+### 1. Lista plugins detectados por reflexión
+GET http://localhost:8080/api/v1/reflection/plugins
+
+### 2. Inspecciona metadatos del plugin CARD
+GET http://localhost:8080/api/v1/reflection/plugins/CARD/inspect
+
+### 3. Procesa un pago con invocación reflectiva
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+
+{
+  "paymentId": "PAY-1001",
+  "amount": 125.50,
+  "currency": "PEN",
+  "instrumentType": "CARD",
+  "pan": "4111111111111111",
+  "cardHolder": "Cliente Demo",
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "cvv": "123"
+}
+
+### 4. Consulta métricas de Reflection
+GET http://localhost:8080/api/v1/reflection/metrics
+
+### 5. Recarga el catálogo y reconstruye el registro
+POST http://localhost:8080/api/v1/reflection/plugins/reload

@@ -1,0 +1,7 @@
+{
+  "plugins": [
+    "pe.axiz.reflectionpoc.infrastructure.plugin.CardPaymentProcessor",
+    "pe.axiz.reflectionpoc.infrastructure.plugin.WalletPaymentProcessor",
+    "pe.axiz.reflectionpoc.infrastructure.plugin.BankTransferPaymentProcessor"
+  ]
+}
